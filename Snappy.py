@@ -5,6 +5,7 @@ import threading
 import os
 import math
 from time import sleep
+from enum import Enum
 
 class StageSprite:
 
@@ -117,14 +118,19 @@ class StageSprite:
     def WhenIReceive(self,message):
         pass
 
+
     def Broadcast(self,message):
-        pass
+        threading.Thread(target=TheProject.Stage.WhenIReceive, args=(message,)).start()
+        for name in TheProject.Sprites:
+            threading.Thread(target=TheProject.Sprites[name].WhenIReceive, args=(message,)).start()
 
     def BroadcastAndWait(self,message):
-        pass
+        TheProject.Stage.WhenIReceive(message)
+        for name in TheProject.Sprites:
+            TheProject.Sprites[name].WhenIReceive(message)
 
     def Wait(self,seconds):
-        pass
+        sleep(seconds)
 
     # all other control items not implemented
 
@@ -153,7 +159,11 @@ class StageSprite:
         if event.type == pygame.MOUSEBUTTONUP:
             threading.Thread(None, self.WhenIAmClicked).start()
         elif event.type == pygame.KEYUP:
-            pass
+            custommethod = "When_%s_Pressed" % pygame.key.name(event.key).replace(" ","_")
+            if hasattr(self, custommethod):
+                threading.Thread(None, getattr(self, custommethod)).start()
+            else:
+                threading.Thread(target=self.WhenKeyPressed, args=[pygame.key.name(event.key)]).start()
 
     def _updateCostume(self):
         if self.CurrentCostume == "":
@@ -179,7 +189,6 @@ class Sprite(StageSprite):
     ScreenPosition = (240,200)
     Direction = 90
     _layer = 0
-    _glideTimer = None
     _mouseover = False
 
     _colors = {}
@@ -192,25 +201,41 @@ class Sprite(StageSprite):
             (28,20), "RGBA").convert_alpha()
         super().__init__()
 
-
     # Motion
     def Move(self, steps):
+        prefix = "%s.Move: Direction=%d, steps=%d" % (self.Name, self.Direction, steps)
         if self.Direction == 90:
+            TraceInfo(self,"%s, right" % prefix)
             self._setPosition(self.Location[0] + steps, self.Location[1])
         elif self.Direction == 0:
+            TraceInfo(self,"%s, up" % prefix)
             self._setPosition(self.Location[0], self.Location[1] - steps)
         elif self.Direction == -90:
+            TraceInfo(self,"%s, left" % prefix)
             self._setPosition(self.Location[0] - steps, self.Location[1])
         elif self.Direction == 180:
+            TraceInfo(self,"%s, down" % prefix)
             self._setPosition(self.Location[0], self.Location[1] + steps)
-        elif self.Direction >= -90 and self.Direction <= 90:
+        elif self.Direction > 0 and self.Direction < 90:
             x = math.sin(math.radians(self.Direction)) * steps
             y = math.sqrt((steps * steps) - (x * x))
+            TraceInfo(self,"%s, quad 2, x=%d, y=%d" % (prefix,x,y))
+            self._setPosition(self.Location[0] + x, self.Location[1] + y)
+        elif self.Direction > 90 and self.Direction < 180:
+            x = math.sin(math.radians(180 - self.Direction)) * steps
+            y = math.sqrt((steps * steps) - (x * x))
+            TraceInfo(self,"%s, quad 3, x=%d, y=%d" % (prefix,x,y))
             self._setPosition(self.Location[0] + x, self.Location[1] - y)
+        elif self.Direction < 0 and self.Direction > -90:
+            x = math.sin(math.radians(self.Direction)) * steps
+            y = math.sqrt((steps * steps) - (x * x))
+            TraceInfo(self,"%s, quad 1, x=%d, y=%d" % (prefix,x,y))
+            self._setPosition(self.Location[0] + x, self.Location[1] + y)
         else:
             x = math.sin(math.radians(180 - self.Direction)) * steps
             y = math.sqrt((steps * steps) - (x * x))
-            self._setPosition(self.Location[0] + x, self.Location[1] + y)
+            TraceInfo(self,"%s, quad 4, x=%d, y=%d" % (prefix,x,y))
+            self._setPosition(self.Location[0] + x, self.Location[1] - y)
 
     def TurnClockwise(self, degrees):
         if degrees == 0 or degrees == 360:
@@ -261,56 +286,42 @@ class Sprite(StageSprite):
 
     def PointTowards(self, item):
         if type(item) is tuple:
-            o = self.ScreenPosition
+            o = self.Location
             d = item
-            rise = 0.0
-            run = 0.0
-            offset = 0
-            degrees = 0
-            multiplier = 1
             if o[0] == d[0]:
                 if o[1] < d[1]:
                     self._rotate(0)
-                    return
                 else:
                     self._rotate(180)
-                    return
             elif o[1] == d[1]:
-                if o[1] < d[1]:
-                    self._rotate(-90)
-                    return
-                else:
+                if o[0] < d[0]:
                     self._rotate(90)
-                    return
-            elif o[0] > d[0] and o[1] > d[1]:
-                rise = o[1] - d[1]
-                run = o[0] - d[0]
-                offset = -90
-                multiplier = 1
-            elif o[0] < d[0] and o[1] > d[1]:
-                rise = o[1] - d[1]
-                run = d[0] - o[0]
-                offset = 90
-                multiplier = -1
-            elif o[0] < d[0] and o[1] < d[1]:
-                rise = d[1] - o[1]
-                run = d[0] - o[0]
-                offset = 90
-                multiplier = 1
-            elif o[0] > d[0] and o[1] < d[1]:
-                rise = d[1] - o[1]
-                run = o[0] - d[0]
-                offset = -90
-                multiplier = -1
+                else:
+                    self._rotate(-90)
+            else:
+                rise = abs(d[1] - o[1])
+                run = abs(d[0] - o[0])
+                degrees = math.degrees(math.atan(rise / run))
+                if d[0] > o[0]:
+                    offset = 90
+                    if d[1] > o[1]:
+                        multiplier = -1
+                    else:
+                        multiplier = 1
+                else:
+                    offset = -90
+                    if d[1] > o[1]:
+                        multiplier = 1
+                    else:
+                        multiplier = -1
+                degrees = offset + (multiplier * degrees)
+                self._rotate(degrees)
 
-            degrees = math.degrees(math.atan(rise / run))
-            degrees = offset + (multiplier * degrees)
-            self._rotate(degrees)
         elif type(item) is Sprite:
-            self.PointTowards(item.ScreenPosition)
+            self.PointTowards(item.Location)
         elif type(item) is str:
             if item in TheProject.Sprites:
-                self.PointTowards(TheProject.Sprites[item].ScreenPosition)
+                self.PointTowards(TheProject.Sprites[item].Location)
 
     def GoToPoint(self, x, y):
         self._setPosition(x,y)
@@ -325,7 +336,16 @@ class Sprite(StageSprite):
                 self._setPosition(TheProject.Sprites[item].Location[0], TheProject.Sprites[item].Location[1])
 
     def Glide(self, seconds, x, y):
-        pass
+        rise = y - self.Location[1]
+        run = x - self.Location[0]
+        step = run / (seconds * 24)
+        TraceInfo(self,"gliding: run=%d, rise=%d, step=%f" % (run, rise, step))
+        start = self.Location
+        for i in range(seconds * 24):
+            posx = int(round(start[0] + (i * step)))
+            posy = int(round(start[1] + (i * step) * (rise / run)))
+            self.GoToPoint(posx, posy)
+            sleep(0.02)   # I don't like this.  need to find a better way
 
     def ChangeX(self, x):
         self._setPosition(self.Location[0] + x, self.Location[1])
@@ -340,6 +360,7 @@ class Sprite(StageSprite):
         self._setPosition(self.Location[0],y)
 
     def IfOnEdgeBounce(self):
+        #TODO Implement this
         pass
 
 # Looks
@@ -349,16 +370,16 @@ class Sprite(StageSprite):
             self._shutup()
         self.Saying = message
         if seconds > 0:
-            t = threading.Timer(seconds,self._shutup)
-            t.start()
+            sleep(seconds)
+            self._shutup()
 
     def Think(self,message="Hmmm...",seconds=0):
         if message == "":
             self._clearmind()
         self.Thinking = message
         if seconds > 0:
-            t = threading.Timer(seconds,self._clearmind)
-            t.start()
+            sleep(seconds)
+            self._clearmind()
 
     # Graphic effects not implemented
 
@@ -418,7 +439,7 @@ class Sprite(StageSprite):
         selfrect = pygame.Rect(self.ScreenPosition, self.Size )
         if type(item) is Sprite:
             # the current implementation simply checks whether the two sprites' rectangles intersect.  Perhaps in the
-            # future we can check if a non-transparent pixel in this sprite is intersecting a transparent pixel in the other
+            # future we can check if a non-transparent pixel in this sprite is intersecting a non-transparent pixel in the other
             otherrect = pygame.Rect(item.ScreenPosition, item.Size)
             return selfrect.colliderect(otherrect)
         elif type(item) is tuple:
@@ -461,21 +482,78 @@ class Sprite(StageSprite):
             sleep(0.1)
         screen.blit(self.Costume, self.ScreenPosition)
 
+        textimage = None
+        if len(self.Thinking) > 0:
+            textimage = self._rendertext(self.Thinking, pygame.Color("gray"))
+        if len(self.Saying) > 0:
+            textimage = self._rendertext(self.Saying, pygame.Color("black"))
+
+        if textimage is not None:
+            # TODO: Draw speech or thought bubble
+            size = textimage.get_size()
+            x = 0
+            y = 0
+            if self.ScreenPosition[0] + self.Size[0] + size[0] > 480:
+                x = self.ScreenPosition[0] - size[0]
+            else:
+                x = self.ScreenPosition[0] + self.Size[0]
+            if self.ScreenPosition[1] - size[1] > 20:
+                y = self.ScreenPosition[1] - size[1]
+            else:
+                y = self.ScreenPosition[1] + self.Size[1]
+            screen.blit(textimage, (x,y))
+
+    def _rendertext(self, message, color):
+        if message == "":
+            return pygame.Surface((1,1), pygame.SRCALPHA,32)
+        font = pygame.font.Font(None, 24)
+        lines = message.split('\n')
+        renderlines = []
+        for line in lines:
+            words = line.split(' ')
+            renderline = ''
+            for word in words:
+                if len(renderline) < 25:
+                    renderline += word + ' '
+                else:
+                    renderlines.append(renderline)
+                    renderline = word + ' '
+            if len(renderline) > 0:
+                renderlines.append(renderline)
+        lineimages = []
+        totalheight = 0
+        totalwidth = 0
+        for line in renderlines:
+            image = font.render(line, True, color)
+            lineimages.append(image)
+            size = image.get_size()
+            totalheight += size[1] + 4
+            totalwidth = size[0] if size[0] > totalwidth else totalwidth
+        textsurface = pygame.Surface((totalwidth, totalheight),pygame.SRCALPHA, 32)
+        y = 0
+        for lineimage in lineimages:
+            textsurface.blit(lineimage, (0,y))
+            y += lineimage.get_size()[1] + 4
+
+        return textsurface
+
+
+
     def _setPosition(self, x, y):
         oldLocation = self.Location
         self.Location = (x,y)
 
         screenx = x + 240 - (self.Size[0] / 2)
-        screeny = y + 200 - (self.Size[1] / 2)
+        screeny = 180 - y - (self.Size[1] / 2) + 20
 
         self.ScreenPosition = (screenx, screeny)
 
         if self.Drawing:
-            pygame.draw.line(TheProject.PenSurface,self.PenColor, (oldLocation[0] + 240, oldLocation[1] + 180),
-                             (self.Location[0] + 240, self.Location[1] + 180), self.PenSize)
+            pygame.draw.line(TheProject.PenSurface,self.PenColor, (oldLocation[0] + 240, 180 - oldLocation[1]),
+                             (self.Location[0] + 240, 180 - self.Location[1]), self.PenSize)
 
-        print("%s._setPosition: oldLocation=(%d,%d), Location=(%d,%d), ScreenPosition=(%d,%d) Drawing=%s\n" %
-              (self.Name, oldLocation[0], oldLocation[1], self.Location[0], self.Location[1], self.ScreenPosition[0], self.ScreenPosition[1], self.Drawing))
+        TraceDebug(self,"%s._setPosition: oldLocation=(%d,%d), Location=(%d,%d), ScreenPosition=(%d,%d) Drawing=%s" %
+               (self.Name, oldLocation[0], oldLocation[1], self.Location[0], self.Location[1], self.ScreenPosition[0], self.ScreenPosition[1], self.Drawing))
 
     def _rotate(self,direction):
         dir = self.Direction
@@ -491,17 +569,23 @@ class Sprite(StageSprite):
 
         self._updateCostume()
 
+    def _angleTo(self, location):
+        run = abs(self.Location[0] - location[0])
+        rise = abs(self.Location[1] - location[1])
+        return math.degrees(math.atan(rise / run))
+
     def _updateCostume(self):
-        baseCostume = None
         if self.CurrentCostume == "":
             baseCostume = self._turtle
         else:
             baseCostume = self.Costumes[self.CurrentCostume]
 
-        self.Costume = pygame.transform.rotozoom(baseCostume, 90 - self.Direction, self.Scale)
+        angle = self.Direction if self.Direction > 0 else 360 + self.Direction
+
+        self.Costume = pygame.transform.rotozoom(baseCostume, 90 - angle, self.Scale)
         self.Size = self.Costume.get_size()
 
-        print("%s._updateCostume: CurrentCostume=%s, Direction=%d, Scale=%f, Size=(%d,%d)" %
+        TraceDebug(self,"%s._updateCostume: CurrentCostume=%s, Direction=%d, Scale=%f, Size=(%d,%d)" %
               (self.Name, self.CurrentCostume, self.Direction, self.Scale, self.Size[0], self.Size[1]))
 
         self._setPosition(self.Location[0],self.Location[1])
@@ -512,9 +596,7 @@ class Sprite(StageSprite):
         self.Thinking = ""
 
     def _handleEvent(self,event):
-        if event.type == pygame.MOUSEBUTTONUP and self._mouseover:
-            threading.Thread(None, self.WhenIAmClicked).start()
-        elif event.type == pygame.MOUSEMOTION:
+        if event.type == pygame.MOUSEMOTION:
             inbounds = (event.pos[0] >= self.ScreenPosition[0] and event.pos[0] <= self.ScreenPosition[0] + self.Size[0]) and (event.pos[1] >= self.ScreenPosition[1] and event.pos[1] <= self.ScreenPosition[1] + self.Size[1])
             if self._mouseover and not inbounds:
                 self._mouseover = False
@@ -522,8 +604,8 @@ class Sprite(StageSprite):
             if inbounds and not self._mouseover:
                 self._mouseover = True
                 threading.Thread(None,self.WhenIAmMouseEntered).start()
-        elif event.type == pygame.KEYUP:
-            pass
+        else:
+            super()._handleEvent(event)
 
 
 class Project:
@@ -615,3 +697,31 @@ class Project:
                 pygame.display.update()
 
 TheProject = Project()
+
+class tracelevel(Enum):
+    Error = 1
+    Warn  = 2
+    Info  = 3
+    Debug = 4
+
+TraceLevel = tracelevel.Error
+
+def Trace(source, level, message):
+    if level.value <= TraceLevel.value:
+        if hasattr(source,"Name"):
+            prefix = "Sprite[%s]" % source.Name
+        elif type(source) is Project:
+            prefix = "Project "
+        elif type(source) is str:
+            prefix = source + " "
+        else:
+            prefix = "%s[%s]" % (type(source), source) + " "
+        print(prefix + message)
+def TraceError(source, message):
+    Trace(source,tracelevel.Error, message)
+def TraceWarn(source, message):
+    Trace(source,tracelevel.Warn, message)
+def TraceInfo(source, message):
+    Trace(source,tracelevel.Info, message)
+def TraceDebug(source, message):
+    Trace(source,tracelevel.Debug, message)
