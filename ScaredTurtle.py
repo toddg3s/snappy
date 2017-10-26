@@ -5,7 +5,16 @@ import random
 
 class ScaredTurtle(Snappy.Sprite):
 
+    clickCount = 0
+
     def WhenIAmClicked(self):
+        self.clickCount += 1
+        if self.clickCount == 3:
+            self.clickCount = 0
+            self.AskAndWait("Are you stalking me?")
+            if Snappy.TheProject.Answer.lower() != "yes":
+                self.Say("Oh, okay.", 1)
+                return
         self.PenDown()
         self.Say("Yikes!", 0.5)
         x = random.randrange(-240, 240)
