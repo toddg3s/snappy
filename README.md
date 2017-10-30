@@ -27,6 +27,14 @@ Requirements:
 I'd also suggest an actual [Python IDE](https://wiki.python.org/moin/IntegratedDevelopmentEnvironments)
 for beginners (which face it, is who will actually be using Snappy), but it's not required.
 
+# Caveats
+
+Snappy is currently pre-alpha state.  There are probably lots of bugs, and it hasn't been stress-tested at all.
+In particular, there are several bits of Snap functionality that are not yet implemented (see [Blocks](blocks.md)).  
+In addition, the functionality to start, pause and stop the program is not implemented, yet.  When the
+project is run, it begins processing mouse and keyboard events, sending the appropriate messages
+to the sprites.  You cannot pause a project, and the only way to stop it is to close the window.
+
 # Creating a project
 Create a new python file in the snappy directory and include this minimal code:
 
@@ -64,5 +72,4 @@ class, then adding code to respond to events that will make the sprite perform.
     TheProject.AddSprite(ScaredTurtle())
     TheProject.Run()
     
- A full documentation of the various methods and how to use them is forthcoming.  
- For now, "The Code Is The Documentation."  ;)
+ See [Blocks](blocks.md) for information about each block type

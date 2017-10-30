@@ -28,6 +28,9 @@ class ScaredTurtle(Snappy.Sprite):
     def When_space_Pressed(self):
         self.Clear()
 
+    def When_t_Pressed(self):
+        self.PlayNote(40, 0.5)
+
     def WhenKeyPressed(self, key):
         self.Say("You pressed %s!" % key, 2)
 
