@@ -307,13 +307,11 @@ class Sprite(StageSprite):
         while degrees > 360:
             degrees -= 360
 
-        direction = self.Direction + degrees
-        if direction > 360:
-            direction -= 360
-
-        if direction > 180:
-            direction -= 360
-        self._rotate(direction)
+        d = self._toNormalAngle(self.Direction)
+        d += degrees
+        while d > 360:
+            d -= 360
+        self._rotate(self._fromNormalAngle(d))
 
     def TurnCounterClockwise(self, degrees):
         if degrees == 0 or degrees == 360:
@@ -324,13 +322,23 @@ class Sprite(StageSprite):
         while degrees > 360:
             degrees -= 360
 
-        direction = self.Direction - degrees
-        if direction < -360:
-            direction += 360
+        d = self._toNormalAngle(self.Direction)
+        d -= degrees
+        while d > 360:
+            d -= 360
+        self._rotate(self._fromNormalAngle(d))
 
-        if direction < -180:
-            direction += 360
-        self._rotate(direction)
+    def _toNormalAngle(self, direction):
+        if direction >= 0:
+            return direction
+        else:
+            return 360 + direction
+
+    def _fromNormalAngle(self, degrees):
+        if degrees > 180:
+            return degrees - 360
+        else:
+            return degrees
 
     def PointInDirection(self, degrees):
         TraceInfo(self, "PointInDirection: degrees=%d" % degrees)
@@ -661,7 +669,7 @@ class Sprite(StageSprite):
         else:
             baseCostume = self.Costumes[self.CurrentCostume]
 
-        angle = self.Direction if self.Direction > 0 else 360 + self.Direction
+        angle = self.Direction if self.Direction >= 0 else 360 + self.Direction
 
         self.Costume = pygame.transform.rotozoom(baseCostume, 90 - angle, self.Scale)
         self.Size = self.Costume.get_size()

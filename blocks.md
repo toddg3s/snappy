@@ -19,7 +19,7 @@ direction | self.Direction
 &nbsp; | &nbsp;
 _Control_ | 
 when flag clicked | not implemented
-when _key_ key pressed | def self.WhenKeyPressed(self, key): - code should use _key_ to decide what to do<br/>or<br/>def self.When_ _key_ _Pressed(self): for a method that handles a specific key (e.g. def When_r_Pressed(self):)
+when _key_ key pressed | def WhenKeyPressed(self, key): - code should use _key_ to decide what to do<br/>or<br/>def When_ _key_ _Pressed(self): for a method that handles a specific key (e.g. def When_r_Pressed(self):)
 when I am _clicked_ | def WhenIAmClicked(self):
 when I am _pressed_ | not implemented
 when I am _dropped_ | not implemented
