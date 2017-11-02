@@ -8,11 +8,13 @@ class ScaredTurtle(Snappy.Sprite):
     clickCount = 0
 
     def WhenIAmClicked(self):
+        self.SetPenSize(10)
+        self.SetPenColor(random.randrange(200))
         self.clickCount += 1
         if self.clickCount == 3:
             self.clickCount = 0
             self.AskAndWait("Are you stalking me?")
-            if Snappy.TheProject.Answer.lower() != "yes":
+            if Snappy.Answer.lower() != "yes":
                 self.Say("Oh, okay.", 1)
                 return
         self.PenDown()

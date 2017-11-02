@@ -270,13 +270,13 @@ class Sprite(StageSprite):
             self._setPosition(self.Location[0] + steps, self.Location[1])
         elif self.Direction == 0:
             TraceInfo(self, "%s, up" % prefix)
-            self._setPosition(self.Location[0], self.Location[1] - steps)
+            self._setPosition(self.Location[0], self.Location[1] + steps)
         elif self.Direction == -90:
             TraceInfo(self, "%s, left" % prefix)
             self._setPosition(self.Location[0] - steps, self.Location[1])
         elif self.Direction == 180:
             TraceInfo(self, "%s, down" % prefix)
-            self._setPosition(self.Location[0], self.Location[1] + steps)
+            self._setPosition(self.Location[0], self.Location[1] - steps)
         elif 0 < self.Direction < 90:
             x = math.sin(math.radians(self.Direction)) * steps
             y = math.sqrt((steps * steps) - (x * x))
@@ -359,7 +359,7 @@ class Sprite(StageSprite):
             o = self.Location
             d = item
             if o[0] == d[0]:
-                if o[1] < d[1]:
+                if o[1] > d[1]:
                     self._rotate(0)
                 else:
                     self._rotate(180)
