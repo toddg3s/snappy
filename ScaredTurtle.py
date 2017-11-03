@@ -1,9 +1,9 @@
 
-import Snappy
+from Snappy import *
 import random
 
 
-class ScaredTurtle(Snappy.Sprite):
+class ScaredTurtle(Sprite):
 
     clickCount = 0
 
@@ -14,7 +14,7 @@ class ScaredTurtle(Snappy.Sprite):
         if self.clickCount == 3:
             self.clickCount = 0
             self.AskAndWait("Are you stalking me?")
-            if Snappy.Answer.lower() != "yes":
+            if TheProject.Answer.lower() != "yes":
                 self.Say("Oh, okay.", 1)
                 return
         self.PenDown()
@@ -34,9 +34,11 @@ class ScaredTurtle(Snappy.Sprite):
         self.PlayNote(40, 0.5)
 
     def WhenKeyPressed(self, key):
-        self.Say("You pressed %s!" % key, 2)
+        if key != "return":
+            self.Say("You pressed %s!" % key, 2)
 
+    def When_d_Pressed(self):
+        self.Glide(2,self.Location[0],self.Location[1] - 50)
 
-Snappy.TheProject.AddSprite(ScaredTurtle())
-Snappy.TraceLevel = Snappy.tracelevel.Info
-Snappy.TheProject.Run()
+TheProject.AddSprite(ScaredTurtle())
+TheProject.Run()

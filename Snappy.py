@@ -6,7 +6,6 @@ from time import sleep
 from enum import Enum
 from array import array
 
-
 class StageSprite:
 
     Costumes = {}
@@ -160,27 +159,28 @@ class StageSprite:
         pygame.mixer.stop()
 
     def SetTempo(self, bpm):
-        Tempo = bpm
+        TheProject.Tempo = bpm
 
     def ChangeTempoBy(self, bpm):
-        Tempo += bpm
+        TheProject.Tempo += bpm
 
     def Rest(self, beats):
-        sleep(beats * (Tempo / 60.0))
+        sleep(beats * (TheProject.Tempo / 60.0))
 
     def PlayNote(self, note, beats):
+        Trace.info(self, "Playing note %d for %d" % (note, beats))
         period = int(round(pygame.mixer.get_init()[0] / self.freq[note]))
         samples = array("h", [0] * period)
         amplitude = 2 ** (abs(pygame.mixer.get_init()[1]) - 1) - 1
         for time in range(period):
-            if time < period / 2:
+            if time < int(period / 2):
                 samples[time] = amplitude
             else:
                 samples[time] = -amplitude
         s = pygame.mixer.Sound(samples)
         ch = pygame.mixer.find_channel(True)
         ch.play(s,-1)
-        sleep(beats * (Tempo / 60.0))
+        sleep(beats * (TheProject.Tempo / 60.0))
         ch.stop()
 
     freq = [ 13.2216, 13.2216, 13.2216, 13.2216, 13.2216, 13.2216, 13.2216, 13.2216, 13.3116, 13.7366, 14.5616, 15.4316,
@@ -266,36 +266,36 @@ class Sprite(StageSprite):
     def Move(self, steps):
         prefix = "Move: Direction=%d, steps=%d" % (self.Direction, steps)
         if self.Direction == 90:
-            TraceInfo(self, "%s, right" % prefix)
+            Trace.info(self, "%s, right" % prefix)
             self._setPosition(self.Location[0] + steps, self.Location[1])
         elif self.Direction == 0:
-            TraceInfo(self, "%s, up" % prefix)
+            Trace.info(self, "%s, up" % prefix)
             self._setPosition(self.Location[0], self.Location[1] + steps)
         elif self.Direction == -90:
-            TraceInfo(self, "%s, left" % prefix)
+            Trace.info(self, "%s, left" % prefix)
             self._setPosition(self.Location[0] - steps, self.Location[1])
         elif self.Direction == 180:
-            TraceInfo(self, "%s, down" % prefix)
+            Trace.info(self, "%s, down" % prefix)
             self._setPosition(self.Location[0], self.Location[1] - steps)
         elif 0 < self.Direction < 90:
             x = math.sin(math.radians(self.Direction)) * steps
             y = math.sqrt((steps * steps) - (x * x))
-            TraceInfo(self, "%s, quad 2, x=%d, y=%d" % (prefix,x,y))
+            Trace.info(self, "%s, quad 2, x=%d, y=%d" % (prefix,x,y))
             self._setPosition(self.Location[0] + x, self.Location[1] + y)
         elif 90 < self.Direction < 180:
             x = math.sin(math.radians(180 - self.Direction)) * steps
             y = math.sqrt((steps * steps) - (x * x))
-            TraceInfo(self, "%s, quad 3, x=%d, y=%d" % (prefix,x,y))
+            Trace.info(self, "%s, quad 3, x=%d, y=%d" % (prefix,x,y))
             self._setPosition(self.Location[0] + x, self.Location[1] - y)
         elif 0 > self.Direction > -90:
             x = math.sin(math.radians(self.Direction)) * steps
             y = math.sqrt((steps * steps) - (x * x))
-            TraceInfo(self, "%s, quad 1, x=%d, y=%d" % (prefix,x,y))
+            Trace.info(self, "%s, quad 1, x=%d, y=%d" % (prefix,x,y))
             self._setPosition(self.Location[0] + x, self.Location[1] + y)
         else:
             x = math.sin(math.radians(180 - self.Direction)) * steps
             y = math.sqrt((steps * steps) - (x * x))
-            TraceInfo(self, "%s, quad 4, x=%d, y=%d" % (prefix,x,y))
+            Trace.info(self, "%s, quad 4, x=%d, y=%d" % (prefix,x,y))
             self._setPosition(self.Location[0] + x, self.Location[1] - y)
 
     def TurnClockwise(self, degrees):
@@ -341,7 +341,7 @@ class Sprite(StageSprite):
             return degrees
 
     def PointInDirection(self, degrees):
-        TraceInfo(self, "PointInDirection: degrees=%d" % degrees)
+        Trace.info(self, "PointInDirection: degrees=%d" % degrees)
         while degrees < -360:
             degrees += 360
         while degrees > 360:
@@ -409,11 +409,14 @@ class Sprite(StageSprite):
         rise = y - self.Location[1]
         run = x - self.Location[0]
         step = run / (seconds * 24)
-        TraceInfo(self, "gliding: run=%d, rise=%d, step=%f" % (run, rise, step))
+        Trace.info(self, "gliding: run=%d, rise=%d, step=%f" % (run, rise, step))
         start = self.Location
         for i in range(seconds * 24):
             posx = int(round(start[0] + (i * step)))
-            posy = int(round(start[1] + (i * step) * (rise / run)))
+            if run == 0:
+                posy = int(round(start[1]) + (i * (rise / (seconds * 24))))
+            else:
+                posy = int(round(start[1] + (i * step) * (rise / run)))
             self.GoToPoint(posx, posy)
             sleep(0.02)   # I don't like this.  need to find a better way
 
@@ -434,7 +437,7 @@ class Sprite(StageSprite):
            and 20 < self.ScreenPosition[1] and self.ScreenPosition[1] + self.Size[1] < 380):
             return
 
-        TraceInfo(self, "Bouncing: ScreenPosition=%s, Direction=%d" % (self.ScreenPosition, self.Direction))
+        Trace.info(self, "Bouncing: ScreenPosition=%s, Direction=%d" % (self.ScreenPosition, self.Direction))
         if self.ScreenPosition[0] <= 0:
             self.PointInDirection(self.Direction * -1)
             self.SetX(-240 + (self.Size[0] / 2))
@@ -649,12 +652,12 @@ class Sprite(StageSprite):
             pygame.draw.line(TheProject.PenSurface,self.PenColor, (oldLocation[0] + 240, 180 - oldLocation[1]),
                              (self.Location[0] + 240, 180 - self.Location[1]), self.PenSize)
 
-        TraceDebug(self,"%s._setPosition: oldLocation=(%d,%d), Location=(%d,%d), ScreenPosition=(%d,%d) Drawing=%s" %
+        Trace.debug(self,"%s._setPosition: oldLocation=(%d,%d), Location=(%d,%d), ScreenPosition=(%d,%d) Drawing=%s" %
                (self.Name, oldLocation[0], oldLocation[1], self.Location[0], self.Location[1], self.ScreenPosition[0],
                 self.ScreenPosition[1], self.Drawing))
 
     def _rotate(self, direction):
-        TraceDebug(self, "_rotate: %d" % direction)
+        Trace.debug(self, "_rotate: %d" % direction)
         self.Direction = direction
         self._updateCostume()
 
@@ -674,7 +677,7 @@ class Sprite(StageSprite):
         self.Costume = pygame.transform.rotozoom(baseCostume, 90 - angle, self.Scale)
         self.Size = self.Costume.get_size()
 
-        TraceDebug(self,"%s._updateCostume: CurrentCostume=%s, Direction=%d, Scale=%f, Size=(%d,%d)" %
+        Trace.debug(self,"%s._updateCostume: CurrentCostume=%s, Direction=%d, Scale=%f, Size=(%d,%d)" %
               (self.Name, self.CurrentCostume, self.Direction, self.Scale, self.Size[0], self.Size[1]))
 
         self._setPosition(self.Location[0], self.Location[1])
@@ -858,6 +861,9 @@ class Project:
 
     Asking = False
     Answer = ""
+    MouseX = 0
+    MouseY = 0
+    Tempo = 60
     _textBox = None
 
     def __init__(self):
@@ -900,21 +906,21 @@ class Project:
                 del self.Sprites[key]
 
     def MoveToFront(self, sprite):
-        TraceDebug(self, "Moving sprite %s to the front" % sprite.Name)
+        Trace.debug(self, "Moving sprite %s to the front" % sprite.Name)
         for s in sorted(self.Sprites, key=self._getLayer, reverse=True):
             if self.Sprites[s]._layer > sprite._layer:
                 self.Sprites[s]._layer -= 1
         sprite._layer = len(self.Sprites) - 1
-        TraceDebug(self, ",".join('{}({})'.format(key,self.Sprites[key]._layer) for key in sorted(self.Sprites, key=self._getLayer)))
+        Trace.debug(self, ",".join('{}({})'.format(key,self.Sprites[key]._layer) for key in sorted(self.Sprites, key=self._getLayer)))
 
     def MoveBack(self, sprite, layers):
-        TraceDebug(self, "Moving sprite %s back %d layers" % (sprite.Name, layers))
+        Trace.debug(self, "Moving sprite %s back %d layers" % (sprite.Name, layers))
         count = layers if layers <= sprite._layer else sprite._layer
         for s in sorted(self.Sprites, key=self._getLayer, reverse=True):
             if sprite._layer - count <= self.Sprites[s]._layer < sprite._layer:
                 self.Sprites[s]._layer += 1
         sprite._layer -= count
-        TraceDebug(self, ",".join('{}({})'.format(key,self.Sprites[key]._layer) for key in sorted(self.Sprites, key=self._getLayer)))
+        Trace.debug(self, ",".join('{}({})'.format(key,self.Sprites[key]._layer) for key in sorted(self.Sprites, key=self._getLayer)))
 
     def _getLayer(self, sprite):
         if type(sprite) is str:
@@ -950,6 +956,10 @@ class Project:
                             thread._tstate_lock = None
                             thread._stop()
                     exit()
+                    
+                pos = pygame.mouse.get_pos()
+                TheProject.MouseX = pos[0] - 240
+                TheProject.MouseY = 200 - pos[1]
                 if self.Running:
                     if not self.Asking or (i.type != pygame.KEYUP and i.type != pygame.KEYDOWN):
                         self.Stage._handleEvent(i)
@@ -960,7 +970,7 @@ class Project:
                 if self._textBox is None:
                     self._textBox = TextInput()
                 elif self._textBox.update(events):
-                    Answer = self._textBox.get_text()
+                    TheProject.Answer = self._textBox.get_text()
                     self.Asking = False
                     self._textBox = None
 
@@ -988,33 +998,42 @@ class tracelevel(Enum):
 TraceLevel = tracelevel.Error
 
 
-def Trace(source, level, message):
-    if level.value <= TraceLevel.value:
-        if type(source) is Project:
-            prefix = "Project "
-        elif hasattr(source,"Name"):
-            prefix = "Sprite[%s] " % source.Name
-        elif type(source) is str:
-            prefix = source + " "
-        else:
-            prefix = "%s[%s] " % (type(source), source)
-        print(prefix + message)
+class Trace:
+    level = tracelevel.Info
+    
+    @staticmethod
+    def setLevel(level):
+        Trace.level = level
 
+    @staticmethod
+    def write(source, level, message):
+        if level.value <= Trace.level.value:
+            if type(source) is Project:
+                prefix = "Project "
+            elif hasattr(source,"Name"):
+                prefix = "Sprite[%s] " % source.Name
+            elif type(source) is str:
+                prefix = source + " "
+            else:
+                prefix = "%s[%s] " % (type(source), source)
+            print(prefix + message)
 
-def TraceError(source, message):
-    Trace(source,tracelevel.Error, message)
+    @staticmethod
+    def error(source, message):
+        Trace.write(source,tracelevel.Error, message)
 
+    @staticmethod
+    def warn(source, message):
+        Trace.write(source,tracelevel.Warn, message)
 
-def TraceWarn(source, message):
-    Trace(source,tracelevel.Warn, message)
+    @staticmethod
+    def info(source, message):
+        Trace.write(source,tracelevel.Info, message)
 
+    @staticmethod
+    def debug(source, message):
+        Trace.write(source,tracelevel.Debug, message)
 
-def TraceInfo(source, message):
-    Trace(source,tracelevel.Info, message)
-
-
-def TraceDebug(source, message):
-    Trace(source,tracelevel.Debug, message)
 
 def getTheTurtle():
     return pygame.image.fromstring(
@@ -1097,5 +1116,3 @@ def getTheTurtle():
             (28, 20), "RGBA").convert_alpha()
 
 TheProject = Project()
-Answer = ""
-Tempo = 60
