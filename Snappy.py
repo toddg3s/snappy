@@ -244,9 +244,15 @@ class StageSprite:
             self.Costume = self.Costumes[self.CurrentCostume]
 
 
+class rotation(Enum):
+    canRotate = 0
+    leftRightOnly = 1
+    noRotation = 2
+
+
 class Sprite(StageSprite):
 
-    Name = "Sprite"
+    Name = "sprite"
     Drawing = False
     PenColor = pygame.Color("blue")
     PenSize = 1
@@ -259,7 +265,7 @@ class Sprite(StageSprite):
     Direction = 90
     _layer = 0
     _mouseover = False
-
+    _rotation = rotation.canRotate
     _colors = {}
     _turtle = None
 
@@ -583,6 +589,8 @@ class Sprite(StageSprite):
 
     # color-touching not implemented
 
+    def SetRotation(self, rotate):
+        self._rotation = rotate
 
     def Draw(self,screen):
         while self.Costume.get_locked():
@@ -677,13 +685,19 @@ class Sprite(StageSprite):
         else:
             baseCostume = self.Costumes[self.CurrentCostume]
 
-        angle = self.Direction if self.Direction >= 0 else 360 + self.Direction
+        if self._rotation == rotation.canRotate:
+            angle = self.Direction if self.Direction >= 0 else 360 + self.Direction
 
-        self.Costume = pygame.transform.rotozoom(baseCostume, 90 - angle, self.Scale)
-        self.Size = self.Costume.get_size()
+            self.Costume = pygame.transform.rotozoom(baseCostume, 90 - angle, self.Scale)
+            self.Size = self.Costume.get_size()
+        elif self._rotation == rotation.leftRightOnly:
+            if self.Direction < 0:
+                self.Costume = pygame.transform.flip(baseCostume, True, False)
+            else:
+                self.Costume = baseCostume
 
-        Trace.debug(self,"%s._updateCostume: CurrentCostume=%s, Direction=%d, Scale=%f, Size=(%d,%d)" %
-              (self.Name, self.CurrentCostume, self.Direction, self.Scale, self.Size[0], self.Size[1]))
+        Trace.debug(self,"_updateCostume: CurrentCostume=%s, Direction=%d, Scale=%f, Size=(%d,%d)" %
+              (self.CurrentCostume, self.Direction, self.Scale, self.Size[0], self.Size[1]))
 
         self._setPosition(self.Location[0], self.Location[1])
 
