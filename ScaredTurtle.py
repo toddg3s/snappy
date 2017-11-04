@@ -7,6 +7,9 @@ class ScaredTurtle(Sprite):
 
     clickCount = 0
 
+    def WhenStarted(self):
+        self.Say("Hi!",0.5)
+
     def WhenIAmClicked(self):
         self.SetPenSize(10)
         self.SetPenColor(random.randrange(200))
