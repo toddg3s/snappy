@@ -99,6 +99,9 @@ class StageSprite:
 
 # Control
 
+    def WhenStarted(self):
+        pass
+
     def WhenKeyPressed(self,key):
         pass
 
@@ -221,7 +224,9 @@ class StageSprite:
         self.Costumes[costumename] = image
 
     def _handleEvent(self,event):
-        if event.type == pygame.MOUSEBUTTONUP:
+        if event.type == pygame.USEREVENT:
+            threading.Thread(None, self.WhenStarted).start()
+        elif event.type == pygame.MOUSEBUTTONUP:
             if not hasattr(self, "_mouseover") or self._mouseover:
                 threading.Thread(None, self.WhenIAmClicked).start()
         elif event.type == pygame.KEYUP:
@@ -683,7 +688,9 @@ class Sprite(StageSprite):
         self._setPosition(self.Location[0], self.Location[1])
 
     def _handleEvent(self,event):
-        if event.type == pygame.MOUSEMOTION:
+        if event.type == pygame.USEREVENT:
+            threading.Thread(None, self.WhenStarted).start()
+        elif event.type == pygame.MOUSEMOTION:
             inbounds = (self.ScreenPosition[0] <= event.pos[0] <= self.ScreenPosition[0] + self.Size[0]) and (
             self.ScreenPosition[1] <= event.pos[1] <= self.ScreenPosition[1] + self.Size[1])
             if self._mouseover and not inbounds:
@@ -945,6 +952,7 @@ class Project:
         pass
 
     def Run(self):
+        pygame.event.post(pygame.event.Event(pygame.USEREVENT, { }))
         while True:
             events = pygame.event.get()
 
