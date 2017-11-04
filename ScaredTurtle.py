@@ -43,5 +43,14 @@ class ScaredTurtle(Sprite):
     def When_d_Pressed(self):
         self.Glide(2,self.Location[0],self.Location[1] - 50)
 
+    def When_0_Pressed(self):
+        self.SetRotation(rotation.canRotate)
+
+    def When_1_Pressed(self):
+        self.SetRotation(rotation.leftRightOnly)
+
+    def When_2_Pressed(self):
+        self.SetRotation(rotation.noRotation)
+
 TheProject.AddSprite(ScaredTurtle())
 TheProject.Run()
