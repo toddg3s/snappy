@@ -208,7 +208,7 @@ class StageSprite:
         if type(costume) is str:
             image = pygame.image.load(costume).convert_alpha()
             if costumename == "":
-                costumename = os.path.splitext(os.path.split(image)[-1])[0]
+                costumename = os.path.splitext(os.path.split(costume)[-1])[0]
         elif type(costume) is pygame.Surface:
             image = costume
             if costumename == "":
