@@ -886,9 +886,6 @@ class Project:
 
 
     def SetTheStage(self, stage):
-        if type(stage) is not StageSprite:
-            TraceError(self, "Cannot set the stage to anything but an object of class StageSprite")
-            return
         self.Stage = stage
 
     def AddSprite(self, sprite):
