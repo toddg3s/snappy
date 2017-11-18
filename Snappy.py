@@ -27,6 +27,7 @@ class StageSprite:
 # Looks
 
     def SwitchToCostume(self,name):
+        Trace.call(self,"SwitchToCostume(%s)" % name)
         if name in self.Costumes:
             self.CurrentCostume = name
         else:
@@ -34,6 +35,7 @@ class StageSprite:
         self._updateCostume()
 
     def NextCostume(self):
+        Trace.call(self, "NextCostume")
         if len(self.Costumes) == 0:
             self.CurrentCostume = ""
             self._updateCostume()
@@ -51,42 +53,54 @@ class StageSprite:
         self._updateCostume()
 
     def Show(self):
+        Trace.call(self,"Show")
         self.Hidden = False
 
     def Hide(self):
+        Trace.call(self,"Hide")
         self.Hidden = True
 
 # Sensing
 
     def MouseDown(self):
-        return pygame.mouse.get_pressed()[0]
+        down =  pygame.mouse.get_pressed()[0]
+        Trace.debug(self,"MouseDown returns %s" % down)
+        return down
 
     def KeyPressed(self,key):
         if type(key) is int:
-            return pygame.key.get_pressed()[key]
+            pressed = pygame.key.get_pressed()[key]
+            Trace.debug(self,"KeyPressed(%d) returns %s" % (key, pressed))
+            return pressed
         elif type(key) is str:
             keycheck = key.lower().strip()
             if len(keycheck) == 1:
-                return pygame.key.get_pressed()[ord(keycheck)]
+                pressed = pygame.key.get_pressed()[ord(keycheck)]
+                Trace.debug(self,"KeyPressed('%s') returns %s" % (key, pressed))
+                return pressed
             else:
+                pressed = False
                 if keycheck == 'any key':
                     for flag in pygame.key.get_pressed():
                         if flag:
-                            return True
+                            pressed = True
                 elif keycheck == 'left arrow':
-                    return pygame.key.get_pressed()[pygame.K_LEFT]
+                    pressed = pygame.key.get_pressed()[pygame.K_LEFT]
                 elif keycheck == 'right arrow':
-                    return pygame.key.get_pressed()[pygame.K_RIGHT]
+                    pressed = pygame.key.get_pressed()[pygame.K_RIGHT]
                 elif keycheck == 'up arrow':
-                    return pygame.key.get_pressed()[pygame.K_UP]
+                    pressed = pygame.key.get_pressed()[pygame.K_UP]
                 elif keycheck == 'down arrow':
-                    return pygame.key.get_pressed()[pygame.K_DOWN]
+                    pressed = pygame.key.get_pressed()[pygame.K_DOWN]
                 elif keycheck == 'space':
-                    return pygame.key.get_pressed()[pygame.K_SPACE]
-
+                    pressed = pygame.key.get_pressed()[pygame.K_SPACE]
+                Trace.debug(self, "KeyPressed('%s') returns %s" % (keycheck, pressed))
+                return pressed
+        Trace.debug(self, "KeyPressed(%s) returns False")
         return False
 
     def AskAndWait(self,prompt):
+        Trace.call(self, "AskAndWait('%s')" % prompt)
         self.Saying = prompt
         TheProject.Asking = True
         while TheProject.Asking:
@@ -95,6 +109,7 @@ class StageSprite:
 # Pen
 
     def Clear(self):
+        Trace.call(self, "Clear")
         TheProject.PenSurface = pygame.Surface((480,360),pygame.SRCALPHA,32)
 
 # Control
@@ -125,16 +140,19 @@ class StageSprite:
 
 
     def Broadcast(self,message):
+        Trace.call(self, "Broadcast('%s')" % message)
         threading.Thread(target=TheProject.Stage.WhenIReceive, args=(message,)).start()
         for name in TheProject.Sprites:
             threading.Thread(target=TheProject.Sprites[name].WhenIReceive, args=(message,)).start()
 
     def BroadcastAndWait(self,message):
+        Trace.call(self, "BroadcastAndWait('%s')" % message)
         TheProject.Stage.WhenIReceive(message)
         for name in TheProject.Sprites:
             TheProject.Sprites[name].WhenIReceive(message)
 
     def Wait(self, seconds):
+        Trace.call(self,"Wait(%d)" % seconds)
         sleep(seconds)
 
     # all other control items not implemented because python language has them built in
@@ -142,36 +160,48 @@ class StageSprite:
 # Sound
     def PlaySound(self, sound):
         if type(sound) is str:
+            Trace.call(self, "PlaySound('%s')" % sound)
             s = pygame.mixer.Sound(file=sound)
         elif type(sound) is pygame.mixer.Sound:
+            Trace.call(self, "PlaySound(sound)")
             s = sound
         else:
+            Trace.call(self, "PlaySound(array)")
             s = pygame.mixer.Sound(array=sound)
         s.play()
 
     def PlaySoundUntilDone(self, sound):
         if type(sound) is str:
+            Trace.call(self, "PlaySoundUntilDone('%s')" % sound)
             s = pygame.mixer.Sound(file=sound)
+        elif type(sound) is pygame.mixer.Sound:
+            Trace.call(self, "PlaySoundUntilDone(sound)")
+            s = sound
         else:
+            Trace.call(self, "PlaySoundUntilDone(array)")
             s = pygame.mixer.Sound(array=sound)
         ch = s.play()
         while ch.get_busy():
             sleep(0.2)
 
     def StopAllSounds(self):
+        Trace.call(self,"StopAllSounds")
         pygame.mixer.stop()
 
     def SetTempo(self, bpm):
+        Trace.call(self, "SetTempo(%d)" % bpm)
         TheProject.Tempo = bpm
 
     def ChangeTempoBy(self, bpm):
+        Trace.call(self, "ChangeTempoBy(%d)" % bpm)
         TheProject.Tempo += bpm
 
     def Rest(self, beats):
+        Trace.call(self, "Rest(%d)" % beats)
         sleep(beats * (TheProject.Tempo / 60.0))
 
     def PlayNote(self, note, beats):
-        Trace.info(self, "Playing note %d for %d" % (note, beats))
+        Trace.call(self, "PlayNote(%d,%d)" % (note, beats))
         period = int(round(pygame.mixer.get_init()[0] / self.freq[note]))
         samples = array("h", [0] * period)
         amplitude = 2 ** (abs(pygame.mixer.get_init()[1]) - 1) - 1
@@ -199,6 +229,7 @@ class StageSprite:
              5587.65, 5587.65, 5587.65, 5587.65, 5587.65, 5587.65, 5587.65, 5587.65 ]
 
     def Draw(self,screen):
+        Trace.debug(self, "Draw(surface)")
         if not self.Hidden:
             screen.blit(self.Costume, (0, 20))
 
@@ -206,10 +237,12 @@ class StageSprite:
         image = None
         costumename = name
         if type(costume) is str:
+            Trace.call(self, "AddCostume('%s','%s')" % (costume,name))
             image = pygame.image.load(costume).convert_alpha()
             if costumename == "":
                 costumename = os.path.splitext(os.path.split(costume)[-1])[0]
         elif type(costume) is pygame.Surface:
+            Trace.call(self, "AddCostume(surface,'%s')" % name)
             image = costume
             if costumename == "":
                 costumename = "Costume"
@@ -225,18 +258,27 @@ class StageSprite:
 
     def _handleEvent(self,event):
         if event.type == pygame.USEREVENT:
+            Trace.debug(self, "_handleEvent(USEREVENT)")
+            Trace.call(self, "WhenStarted()")
             threading.Thread(None, self.WhenStarted).start()
         elif event.type == pygame.MOUSEBUTTONUP:
             if not hasattr(self, "_mouseover") or self._mouseover:
+                Trace.debug(self, "_handleEvent(MOUSEBUTTONUP)")
+                Trace.call(self, "WhenIAmClicked()")
                 threading.Thread(None, self.WhenIAmClicked).start()
         elif event.type == pygame.KEYUP:
             custommethod = "When_%s_Pressed" % pygame.key.name(event.key).replace(" ", "_")
             if hasattr(self, custommethod):
+                Trace.debug(self,"_handleEvent(KEYUP|%d) custom" % event.key)
+                Trace.call(self, "%s()" % custommethod)
                 threading.Thread(None, getattr(self, custommethod)).start()
             else:
+                Trace.debug(self,"_handleEvent(KEYUP|%d) standard" % event.key)
+                Trace.call(self, "WhenKeyPressed()")
                 threading.Thread(target=self.WhenKeyPressed, args=[pygame.key.name(event.key)]).start()
 
     def _updateCostume(self):
+        Trace.debug(self, "_updateCostume")
         if self.CurrentCostume == "":
             self.Costume = pygame.Surface((480,360),0,32)
             self.Costume.fill(pygame.Color("white"))
@@ -275,41 +317,33 @@ class Sprite(StageSprite):
 
     # Motion
     def Move(self, steps):
-        prefix = "Move: Direction=%d, steps=%d" % (self.Direction, steps)
+        Trace.call(self,"Move(%d)" % steps)
         if self.Direction == 90:
-            Trace.info(self, "%s, right" % prefix)
             self._setPosition(self.Location[0] + steps, self.Location[1])
         elif self.Direction == 0:
-            Trace.info(self, "%s, up" % prefix)
             self._setPosition(self.Location[0], self.Location[1] + steps)
         elif self.Direction == -90:
-            Trace.info(self, "%s, left" % prefix)
             self._setPosition(self.Location[0] - steps, self.Location[1])
         elif self.Direction == 180:
-            Trace.info(self, "%s, down" % prefix)
             self._setPosition(self.Location[0], self.Location[1] - steps)
         elif 0 < self.Direction < 90:
             x = math.sin(math.radians(self.Direction)) * steps
             y = math.sqrt((steps * steps) - (x * x))
-            Trace.info(self, "%s, quad 2, x=%d, y=%d" % (prefix,x,y))
             self._setPosition(self.Location[0] + x, self.Location[1] + y)
         elif 90 < self.Direction < 180:
             x = math.sin(math.radians(180 - self.Direction)) * steps
             y = math.sqrt((steps * steps) - (x * x))
-            Trace.info(self, "%s, quad 3, x=%d, y=%d" % (prefix,x,y))
             self._setPosition(self.Location[0] + x, self.Location[1] - y)
         elif 0 > self.Direction > -90:
             x = math.sin(math.radians(self.Direction)) * steps
             y = math.sqrt((steps * steps) - (x * x))
-            Trace.info(self, "%s, quad 1, x=%d, y=%d" % (prefix,x,y))
             self._setPosition(self.Location[0] + x, self.Location[1] + y)
         else:
             x = math.sin(math.radians(180 - self.Direction)) * steps
             y = math.sqrt((steps * steps) - (x * x))
-            Trace.info(self, "%s, quad 4, x=%d, y=%d" % (prefix,x,y))
-            self._setPosition(self.Location[0] + x, self.Location[1] - y)
 
     def TurnClockwise(self, degrees):
+        Trace.call(self, "TurnClockwise(%d)" % degrees)
         if degrees == 0 or degrees == 360:
             return
 
@@ -325,6 +359,7 @@ class Sprite(StageSprite):
         self._rotate(self._fromNormalAngle(d))
 
     def TurnCounterClockwise(self, degrees):
+        Trace.call(self, "TurnCounterClockwise(%d)" % degrees)
         if degrees == 0 or degrees == 360:
             return
 
@@ -340,19 +375,21 @@ class Sprite(StageSprite):
         self._rotate(self._fromNormalAngle(d))
 
     def _toNormalAngle(self, direction):
+        Trace.debug(self,"_toNormalAngle(%d)" % direction)
         if direction >= 0:
             return direction
         else:
             return 360 + direction
 
     def _fromNormalAngle(self, degrees):
+        Trace.debug(self, "_fromNormalAngle(%d)" % degrees)
         if degrees > 180:
             return degrees - 360
         else:
             return degrees
 
     def PointInDirection(self, degrees):
-        Trace.info(self, "PointInDirection: degrees=%d" % degrees)
+        Trace.call(self, "PointInDirection(%d)" % degrees)
         while degrees < -360:
             degrees += 360
         while degrees > 360:
@@ -367,6 +404,7 @@ class Sprite(StageSprite):
 
     def PointTowards(self, item):
         if type(item) is tuple:
+            Trace.call(self, "PointTowards((%d,%d))" % (item[0], item[1]))
             o = self.Location
             d = item
             if o[0] == d[0]:
@@ -399,28 +437,35 @@ class Sprite(StageSprite):
                 self._rotate(degrees)
 
         elif type(item) is Sprite:
+            Trace.call(self, "PointTowards(%s)" % item.Name)
             self.PointTowards(item.Location)
         elif type(item) is str:
+            Trace.call(self, "PointTowards('%s')" % item)
             if item in TheProject.Sprites:
                 self.PointTowards(TheProject.Sprites[item].Location)
 
     def GoToPoint(self, x, y):
+        Trace.call(self, "GoToPoint(%d,%d)" % (x, y))
         self._setPosition(x, y)
 
     def GoTo(self, item):
         if type(item) is tuple:
+            Trace.call(self, "GoTo((%d,%d))" % (item[0], item[1]))
             self._setPosition(item[0],item[1])
         elif type(item) is Sprite:
+            Trace.call(self, "GoTo(%s)" % item.Name)
             self._setPosition(item.Location[0],item.Location[1])
         elif type(item) is str:
+            Trace.call(self, "GoTo('%s')" % item)
             if item in TheProject.Sprites:
                 self._setPosition(TheProject.Sprites[item].Location[0], TheProject.Sprites[item].Location[1])
 
     def Glide(self, seconds, x, y):
+        Trace.call(self,"Glide(%d,%d,%d)" % (seconds, x, y))
         rise = y - self.Location[1]
         run = x - self.Location[0]
         step = run / (seconds * 24)
-        Trace.info(self, "gliding: run=%d, rise=%d, step=%f" % (run, rise, step))
+        Trace.debug(self, "gliding: run=%d, rise=%d, step=%f" % (run, rise, step))
         start = self.Location
         for i in range(seconds * 24):
             posx = int(round(start[0] + (i * step)))
@@ -428,27 +473,32 @@ class Sprite(StageSprite):
                 posy = int(round(start[1]) + (i * (rise / (seconds * 24))))
             else:
                 posy = int(round(start[1] + (i * step) * (rise / run)))
-            self.GoToPoint(posx, posy)
+            self._setPosition(posx, posy)
             sleep(0.02)   # I don't like this.  need to find a better way
 
     def ChangeX(self, x):
+        Trace.call(self, "ChangeX(%d)" % x)
         self._setPosition(self.Location[0] + x, self.Location[1])
 
     def SetX(self, x):
+        Trace.call(self, "SetX(%d)" % x)
         self._setPosition(x, self.Location[1])
 
     def ChangeY(self, y):
+        Trace.call(self, "ChangeY(%d)" % y)
         self._setPosition(self.Location[0], self.Location[1] + y)
 
     def SetY(self, y):
+        Trace.call(self, "SetY(%d)" % y)
         self._setPosition(self.Location[0],y)
 
     def IfOnEdgeBounce(self):
+        Trace.call(self, "IfOnEdgeBounce()")
         if (0 < self.ScreenPosition[0] and self.ScreenPosition[0] + self.Size[0] < 480
            and 20 < self.ScreenPosition[1] and self.ScreenPosition[1] + self.Size[1] < 380):
             return
 
-        Trace.info(self, "Bouncing: ScreenPosition=%s, Direction=%d" % (self.ScreenPosition, self.Direction))
+        Trace.debug(self, "Bouncing: ScreenPosition=%s, Direction=%d" % (self.ScreenPosition, self.Direction))
         if self.ScreenPosition[0] <= 0:
             self.PointInDirection(self.Direction * -1)
             self.SetX(-240 + (self.Size[0] / 2))
@@ -475,6 +525,7 @@ class Sprite(StageSprite):
 # Looks
 
     def Say(self, message="Hello", seconds=0):
+        Trace.call(self,"Say('%s',%f)" % (message, seconds))
         if message == "":
             self.Saying = ""
         self.Saying = message
@@ -483,6 +534,7 @@ class Sprite(StageSprite):
             self.Saying = ""
 
     def Think(self,message="Hmmm...",seconds=0):
+        Trace.call(self, "Think('%s',%f)" % (message, seconds))
         if message == "":
             self.Thinking = ""
         self.Thinking = message
@@ -493,106 +545,133 @@ class Sprite(StageSprite):
     # Graphic effects not implemented
 
     def ChangeSize(self,size):
+        Trace.call(self, "ChangeSize(%f)" % size)
         self.Scale += (size / 100.0)
         self._updateCostume()
 
     def SetSize(self,percent):
+        Trace.call(self, "SetSize(%f)" % percent)
         self.Scale = (percent / 100.0)
         self._updateCostume()
 
     def GoToFront(self):
+        Trace.call(self, "GoToFront()")
         TheProject.MoveToFront(self)
 
     def GoBack(self,layers):
+        Trace.call(self, "GoBack()")
         TheProject.MoveBack(self, layers)
 
 # Pen
 
     def PenDown(self):
+        Trace.call(self, "PenDown()")
         self.Drawing = True
 
     def PenUp(self):
+        Trace.call(self, "PenUp()")
         self.Drawing = False
 
     def SetPenColor(self,color):
         if type(color) is tuple:
-            self.PenColor.rgba =  (color[0], color[1], color[3], color[4])
+            Trace.call(self, "SetPenColor(%d,%d,%d,%d)" % (color[0], color[1], color[2], color[3]))
+            self.PenColor.rgba =  (color[0], color[1], color[2], color[3])
         elif type(color) is str:
+            Trace.call(self, "SetPenColor('%s')" % color)
             self.PenColor = pygame.Color(color)
         elif type(color) is int:
+            Trace.call(self, "SetPenColor(%d)" % color)
             self.PenColor.hsva = (color, 100, 100, 100)
         elif type(color) is pygame.Color:
+            Trace.call(self, "SetPenColor(color)")
             self.PenColor = color
 
     def ChangePenColor(self,amount):
+        Trace.call(self, "ChangePenColor(%d)" % amount)
         hsva = self.PenColor.hsva
         self.PenColor.hsva = (hsva[0] + amount, hsva[1], hsva[2], hsva[3])
 
     def ChangePenShade(self,amount):
+        Trace.call(self, "ChangePenShade(%d)" % amount)
         hsva = self.PenColor.hsva
         self.PenColor.hsva = (hsva[0], hsva[1] + amount, hsva[2], hsva[3])
 
     def SetPenShade(self,percent):
+        Trace.call(self, "SetPenShade(%d)" % percent)
         hsva = self.PenColor.hsva
         self.PenColor.hsva = (hsva[0], percent, hsva[2], hsva[3])
 
     def ChangePenSize(self,amount):
+        Trace.call(self, "ChangePenSize(%d)" % amount)
         self.PenSize += amount
 
     def SetPenSize(self,size):
+        Trace.call(self, "SetPenSize(%d)" % size)
         self.PenSize = size
 
 # Sensing
 
     def Touching(self,item):
+        touching = False
         selfrect = pygame.Rect(self.ScreenPosition, self.Size )
+        call = "Touching("
         if type(item) is Sprite:
             # the current implementation simply checks whether the two sprites' rectangles intersect.  Perhaps in the
             # future we can check if a non-transparent pixel in this sprite is intersecting a non-transparent pixel in the other
+            call += item.Name
             otherrect = pygame.Rect(item.ScreenPosition, item.Size)
-            return selfrect.colliderect(otherrect)
+            touching = selfrect.colliderect(otherrect)
         elif type(item) is tuple:
             if len(item) == 2:  # point
-                return selfrect.collidepoint(item[0], item[1])
+                call += "(%d,%d)" % (item[0], item[1])
+                touching = selfrect.collidepoint(item[0], item[1])
             elif len(item) == 4: # rect
+                call += "(%d,%d,%d,%d)" % (item[0], item[1], item[2], item[3])
                 otherrect = pygame.Rect(item[0], item[1], item[2], item[3])
-                return selfrect.colliderect(otherrect)
+                touching = selfrect.colliderect(otherrect)
         elif type(item) is str:
+            call += "'%s'" % item
             side = item.lower().strip()
             if side == 'left':
-                return self.ScreenPosition[0] <= 0
+                touching = self.ScreenPosition[0] <= 0
             elif side == 'right':
-                return self.ScreenPosition[0] + self.Size[0] >= 480
+                touching =  self.ScreenPosition[0] + self.Size[0] >= 480
             elif side == 'top':
-                return self.ScreenPosition[1] <= 0
+                touching = self.ScreenPosition[1] <= 0
             elif side == 'bottom':
-                return self.ScreenPosition[1] + self.Size[1] >= 380
+                touching = self.ScreenPosition[1] + self.Size[1] >= 380
             elif side == 'edge':
-                return self.Touching('left') or self.Touching('right') or self.Touching('top') or self.Touching('bottom')
+                touching = self.Touching('left') or self.Touching('right') or self.Touching('top') or self.Touching('bottom')
             elif item in TheProject.Sprites:
-                return self.Touching(TheProject.Sprites[item])
-
-        return False
+                touching = self.Touching(TheProject.Sprites[item])
+        Trace.debug(self,"%s) returns %s" % (call, touching))
+        return touching
 
     def DistanceTo(self,item):
+        call = "DistanceTo("
         run = 0
         rise = 0
         if type(item) is Sprite:
+            call += item.Name
             run = abs(item.Location[0] - self.Location[0])
             rise = abs(item.Location[1] - self.Location[1])
         elif type(item) is tuple:
+            call += "(%d,%d)" % (item[0], item[1])
             run = abs(item[0] - self.Location[0])
             rise = abs(item[1] - self.Location[1])
 
-        return math.sqrt((run * run) + (rise * rise))
+        distance = math.sqrt((run * run) + (rise * rise))
+        Trace.debug(self, "%s) returns %f" % (call, distance))
 
 
     # color-touching not implemented
 
     def SetRotation(self, rotate):
+        Trace.call(self, "SetRotation(%s)" % rotate)
         self._rotation = rotate
 
     def Draw(self,screen):
+        Trace.debug(self, "Draw(surface)")
         while self.Costume.get_locked():
             sleep(0.1)
         screen.blit(self.Costume, self.ScreenPosition)
@@ -619,6 +698,7 @@ class Sprite(StageSprite):
             screen.blit(textimage, (x,y))
 
     def _rendertext(self, message, color):
+        Trace.debug(self, "_rendertest('%s',color)" % message)
         if message == "":
             return pygame.Surface((1,1), pygame.SRCALPHA,32)
         font = pygame.font.Font(None, 24)
@@ -653,6 +733,7 @@ class Sprite(StageSprite):
         return textsurface
 
     def _setPosition(self, x, y):
+        Trace.debug(self,"_setPosition(%d,%d)" % (x, y))
         oldLocation = self.Location
         self.Location = (x,y)
 
@@ -670,16 +751,19 @@ class Sprite(StageSprite):
                 self.ScreenPosition[1], self.Drawing))
 
     def _rotate(self, direction):
-        Trace.debug(self, "_rotate: %d" % direction)
+        Trace.debug(self, "_rotate(%d)" % direction)
         self.Direction = direction
         self._updateCostume()
 
     def _angleTo(self, location):
         run = abs(self.Location[0] - location[0])
         rise = abs(self.Location[1] - location[1])
-        return math.degrees(math.atan(rise / run))
+        angle = math.degrees(math.atan(rise / run))
+        Trace.debug(self, "_angleTo((%d,%d)) returns %f" % (location[0], location[1], angle))
+        return angle
 
     def _updateCostume(self):
+        Trace.debug(self,"_updateCostume()")
         if self.CurrentCostume == "":
             baseCostume = self._turtle
         else:
@@ -703,15 +787,20 @@ class Sprite(StageSprite):
 
     def _handleEvent(self,event):
         if event.type == pygame.USEREVENT:
+            Trace.debug(self, "_handleEvent(USEREVENT)")
+            Trace.call(self, "WhenStarted()")
             threading.Thread(None, self.WhenStarted).start()
         elif event.type == pygame.MOUSEMOTION:
+            Trace.debug(self, "_handleEvent(MOUSEMOTION)")
             inbounds = (self.ScreenPosition[0] <= event.pos[0] <= self.ScreenPosition[0] + self.Size[0]) and (
             self.ScreenPosition[1] <= event.pos[1] <= self.ScreenPosition[1] + self.Size[1])
             if self._mouseover and not inbounds:
                 self._mouseover = False
+                Trace.call(self, "WhenIAmMouseDeparted()")
                 threading.Thread(None,self.WhenIAmMouseDeparted).start()
             if inbounds and not self._mouseover:
                 self._mouseover = True
+                Trace.call(self, "WhenIAmMouseEntered()")
                 threading.Thread(None,self.WhenIAmMouseEntered).start()
         else:
             super()._handleEvent(event)
@@ -956,12 +1045,6 @@ class Project:
     def Stop(self):
         self.Running = False
 
-    def Load(self, filename):
-        pass
-
-    def Save(self, filename):
-        pass
-
     def Run(self):
         pygame.event.post(pygame.event.Event(pygame.USEREVENT, { }))
         while True:
@@ -1011,14 +1094,32 @@ class tracelevel(Enum):
     Error = 1
     Warn  = 2
     Info  = 3
-    Debug = 4
-
+    Call  = 4
+    Debug = 5
 
 TraceLevel = tracelevel.Error
+
+class ConsoleTraceListener:
+    @staticmethod
+    def write(source, level, message):
+        if level.value <= Trace.level.value:
+            if type(source) is Project:
+                prefix = "Project"
+            elif isinstance(source, Sprite):
+                prefix = "Sprite[%s]" % source.Name
+            elif isinstance(source, StageSprite):
+                prefix = "Stage"
+            elif type(source) is str:
+                prefix = source
+            else:
+                prefix = source.__class__.__name__
+
+            print("%-5s %-20s %s" % (level.name, prefix, message))
 
 
 class Trace:
     level = tracelevel.Info
+    listeners = [ConsoleTraceListener()]
     
     @staticmethod
     def setLevel(level):
@@ -1026,16 +1127,8 @@ class Trace:
 
     @staticmethod
     def write(source, level, message):
-        if level.value <= Trace.level.value:
-            if type(source) is Project:
-                prefix = "Project "
-            elif hasattr(source,"Name"):
-                prefix = "Sprite[%s] " % source.Name
-            elif type(source) is str:
-                prefix = source + " "
-            else:
-                prefix = "%s[%s] " % (type(source), source)
-            print(prefix + message)
+        for listener in Trace.listeners:
+            listener.write(source, level, message)
 
     @staticmethod
     def error(source, message):
@@ -1048,6 +1141,10 @@ class Trace:
     @staticmethod
     def info(source, message):
         Trace.write(source,tracelevel.Info, message)
+
+    @staticmethod
+    def call(source, message):
+        Trace.write(source,tracelevel.Call, message)
 
     @staticmethod
     def debug(source, message):
