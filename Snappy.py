@@ -1,3 +1,13 @@
+
+"""\
+© Copyright. All rights reserved.
+
+Python implementation of Snap! (University of California, Berkeley)
+
+Utilizes PyGame infrastructure (pygame.org)
+
+"""
+
 import pygame
 import threading
 import os
@@ -7,7 +17,6 @@ from enum import Enum
 from array import array
 
 class StageSprite:
-
     Costumes = {}
     CurrentCostume = ""
     Costume = None
@@ -123,11 +132,7 @@ class StageSprite:
     def WhenIAmClicked(self):
         pass
 
-    # def WhenIAmPressed(self):
-    #     pass
-    #
-    # def WhenIAmDropped(self):
-    #     pass
+    # When I Am Pressed and When I Am Dropped not implemented
 
     def WhenIAmMouseEntered(self):
         pass

@@ -52,5 +52,7 @@ class ScaredTurtle(Sprite):
     def When_2_Pressed(self):
         self.SetRotation(rotation.noRotation)
 
-TheProject.AddSprite(ScaredTurtle())
+t = ScaredTurtle()
+TheProject.AddSprite(t)
+Trace.setLevel(tracelevel.Call)
 TheProject.Run()
